@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Board</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Job Board</h1>
+            <nav>
+                <a href="#" id="homeLink">Home</a>
+                <a href="#" id="loginLink">Login</a>
+                <a href="#" id="signupLink">Signup</a>
+                <a href="#" id="logoutLink" style="display:none;">Logout</a>
+            </nav>
+        </header>
+        <main id="mainContent">
+            <!-- Content will be injected here -->
+        </main>
+    </div>
+    <script src="app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const mainContent = document.getElementById('mainContent');
+    const homeLink = document.getElementById('homeLink');
+    const loginLink = document.getElementById('loginLink');
+    const signupLink = document.getElementById('signupLink');
+    const logoutLink = document.getElementById('logoutLink');
+
+    function renderHomePage() {
+        mainContent.innerHTML = `
+            <h2>Job Listings</h2>
+            <ul id="jobList"></ul>
+            ${localStorage.getItem('loggedInUser') ? `
+                <form id="jobForm">
+                    <h3>Add a Job</h3>
+                    <input type="text" id="jobTitle" placeholder="Job Title" required>
+                    <textarea id="jobDescription" placeholder="Job Description" required></textarea>
+                    <button type="submit">Add Job</button>
+                </form>
+            ` : '<p>Please log in to post a job.</p>'}
+        `;
+        loadJobs();
+    }
+
+    function renderLoginPage() {
+        mainContent.innerHTML = `
+            <h2>Login</h2>
+            <form id="loginForm">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+        `;
+    }
+
+    function renderSignupPage() {
+        mainContent.innerHTML = `
+            <h2>Signup</h2>
+            <form id="signupForm">
+                <input type="text" id="newUsername" placeholder="Username" required>
+                <input type="password" id="newPassword" placeholder="Password" required>
+                <button type="submit">Signup</button>
+            </form>
+        `;
+    }
+
+    function loadJobs() {
+        const jobList = document.getElementById('jobList');
+        const jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+        jobList.innerHTML = jobs.map(job => `
+            <li class="jobItem">
+                <h3>${job.title}</h3>
+                <p>${job.description}</p>
+                ${localStorage.getItem('loggedInUser') ? `
+                    <button onclick="sendMessage('${job.title}')">Contact</button>
+                ` : ''}
+            </li>
+        `).join('');
+    }
+
+    function sendMessage(jobTitle) {
+        mainContent.innerHTML = `
+            <h2>Send a Message</h2>
+            <form id="messageForm">
+                <input type="text" id="messageTitle" value="${jobTitle}" readonly>
+                <textarea id="messageContent" placeholder="Your message" required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        `;
+    }
+
+    function handleLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const user = users.find(user => user.username === username && user.password === password);
+        if (user) {
+            localStorage.setItem('loggedInUser', username);
+            alert('Login successful');
+            renderHomePage();
+            toggleAuthLinks();
+        } else {
+            alert('Invalid credentials');
+        }
+    }
+
+    function handleSignup(event) {
+        event.preventDefault();
+        const username = document.getElementById('newUsername').value;
+        const password = document.getElementById('newPassword').value;
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        if (users.find(user => user.username === username)) {
+            alert('Username already exists');
+        } else {
+            users.push({ username, password });
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('Signup successful');
+            renderLoginPage();
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('loggedInUser');
+        alert('Logged out');
+        renderHomePage();
+        toggleAuthLinks();
+    }
+
+    function toggleAuthLinks() {
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        if (loggedInUser) {
+            loginLink.style.display = 'none';
+            signupLink.style.display = 'none';
+            logoutLink.style.display = 'block';
+        } else {
+            loginLink.style.display = 'block';
+            signupLink.style.display = 'block';
+            logoutLink.style.display = 'none';
+        }
+    }
+
+    homeLink.addEventListener('click', renderHomePage);
+    loginLink.addEventListener('click', renderLoginPage);
+    signupLink.addEventListener('click', renderSignupPage);
+    logoutLink.addEventListener('click', handleLogout);
+
+    document.addEventListener('submit', function (event) {
+        if (event.target.id === 'loginForm') {
+            handleLogin(event);
+        } else if (event.target.id === 'signupForm') {
+            handleSignup(event);
+        } else if (event.target.id === 'jobForm') {
+            event.preventDefault();
+            const jobTitle = document.getElementById('jobTitle').value;
+            const jobDescription = document.getElementById('jobDescription').value;
+            const jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+            jobs.push({ title: jobTitle, description: jobDescription });
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            alert('Job added');
+            renderHomePage();
+        } else if (event.target.id === 'messageForm') {
+            event.preventDefault();
+            const messageTitle = document.getElementById('messageTitle').value;
+            const messageContent = document.getElementById('messageContent').value;
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messages.push({ title: messageTitle, content: messageContent, sender: localStorage.getItem('loggedInUser') });
+            localStorage.setItem('messages', JSON.stringify(messages));
+            alert('Message sent');
+            renderHomePage();
+        }
+    });
+
+    // Initial load
+    toggleAuthLinks();
+    renderHomePage();
+});
+
+</script>
+</body>
+</html>
